@@ -13,6 +13,7 @@ Al finalizar este taller, los participantes serán capaces de realizar un flujo 
 
 ## 📂 Estructura del Repositorio
 
+  * `Primera parte - Exploración.md`: Primera parte del taller con recursos para investigación en epigenética.
   * `Taller_análisis_datos_metilación_TCGA.qmd`: **Código fuente.** Documento Quarto con todo el análisis paso a paso.
   * `docs/`: Archivos generados para la visualización web del taller.
   * `data/`: (Ignorado en el control de versiones) Carpeta local donde se almacenan los datos crudos y procesados.
@@ -41,3 +42,4 @@ Este material está bajo la licencia MIT. Eres libre de usarlo, compartirlo y mo
 **Cómo citar este taller:**
 
 > González, D. (2025). Taller: Análisis de Metilación de ADN (TCGA-LUAD). GitHub. https://github.com/dangonzalezc/Taller_analisis_datos_metilacion_TCGA
+
