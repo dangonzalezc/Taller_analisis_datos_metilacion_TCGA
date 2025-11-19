@@ -2,7 +2,7 @@
 
 Existen diversas herramientas para el análisis de datos epigenómicos, que pueden clasificarse en dos grandes categorías:
 
-1. **Herramientas de línea (Command-line tools):**  
+1. **Herramientas para la línea de comandos (Command-line tools):**  
     Estas herramientas requieren conocimientos de básicos a avanzados de programación y suelen ejecutarse en entornos como Linux o servidores de alto rendimiento. 
 
 2. **Herramientas basadas en web (Webtools):**  
