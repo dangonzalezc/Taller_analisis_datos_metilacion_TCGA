@@ -1,0 +1,634 @@
+---
+title: "Análisis de datos de metilación del TCGA-LUAD"
+author: "Daniel González Cubides"
+lang: es
+format:
+  html:
+    theme: 
+      light: flatly
+      dark: darkly
+    toc: true
+    toc-location: left
+    code-fold: true
+    code-tools: true
+    highlight-style: ayu-mirage
+    self-contained: true   # importante para que todo quede en un solo archivo
+project:
+  type: website
+  output-dir: docs
+---
+
+## Objetivo del tutorial
+
+Aprenderás a:
+
+1.  Descargar datos de microarreglos de metilación 450K del proyecto **TCGA-LUAD** (solo pacientes pareados)
+2.  Filtrar CpGs en regiones promotoras de genes candidatos
+3.  Comparar tejido tumoral vs normal pareado
+4.  Realizar pruebas estadísticas y generar visualizaciones
+
+## 1. Preparación del entorno
+
+## 1.1 Instalación de paquetes
+
+```{r instalar-paquetes, eval=FALSE}
+
+# 1. Instalar el gestor de Bioconductor para instalar la libreria TCGAbiolinks, SummarizedExperiment
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("BioinformaticsFMRP/TCGAbiolinksGUI.data")
+BiocManager::install("BioinformaticsFMRP/TCGAbiolinks")
+BiocManager::install("SummarizedExperiment")
+BiocManager::install("sesame",ask = FALSE)
+BiocManager::install("sesameData")
+BiocManager::install("BiocParallel",ask = FALSE)
+
+# 2. Instalar/cargar el resto de paquetes CRAN normales
+if (!require("pacman", quietly = TRUE)) install.packages("pacman")
+pacman::p_load(dplyr, tidyr, tidyverse, ggplot2, pheatmap, openxlsx, writexl, here, patchwork, factoextra, FactoMineR)
+```
+
+## 1.2 Carga de paquetes
+
+```{r cargar-paquetes, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
+
+# 1. Cargar los paquetes de Bioconductor que necesitamos
+suppressPackageStartupMessages({
+  library(TCGAbiolinks)
+  library(SummarizedExperiment)
+  library(sesame)
+  library(sesameData)
+})
+
+# 2. Cargar el resto de paquetes CRAN normales
+if (!require("pacman", quietly = TRUE)) install.packages("pacman")
+
+suppressPackageStartupMessages(
+  pacman::p_load_gh(
+    "dplyr", "tidyr", "tidyverse", "ggplot2", "pheatmap",
+    "openxlsx", "writexl", "here", "patchwork",
+    "factoextra", "FactoMineR",
+    quietly = TRUE
+  )
+)
+
+# 3. Verificación de la carga de los paquetes
+cat("¡Todo instalado y cargado correctamente! ✅\n")
+cat("Versión de R:", R.version.string, "\n")
+cat("TCGAbiolinks version:", as.character(packageVersion("TCGAbiolinks")), "\n")
+cat("SummarizedExperiment version:", as.character(packageVersion("SummarizedExperiment")), "\n")
+cat("sesame version:", as.character(packageVersion("sesame")), "\n")
+
+```
+
+## 2. Consulta de los datos disponibles del proyecto
+
+Hacer los análisis en R nos da la posibilidad de filtrar los sujetos según múltiples variables clínicas y demográficas. En este caso se filtrará para comparar muestras tumorales con tejido normal adyacente del mismo paciente, esto disminuye la cantidad de datos usables, pero asegura que las diferencias observadas se deben principalmente al estado tumoral y no a factores genéticos o ambientales específicos de cada individuo, mejorando la precisión y relevancia biológica del análisis. La codificación del TCGA se encuentra [aquí](https://gdc.cancer.gov/resources-tcga-users/tcga-code-tables).
+
+```{r consulta metadatos, eval=FALSE}
+## Consulta de metadatos TCGA-LUAD:
+# Aquí construimos la consulta para obtener metadatos de muestras tumorales y normales.
+query <- GDCquery(
+  project = "TCGA-LUAD",
+  data.category = "DNA Methylation",
+  platform = "Illumina Human Methylation 450",
+  data.type = "Methylation Beta Value",
+  sample.type = c("Primary Tumor", "Solid Tissue Normal")
+)
+
+# Extraemos la tabla de resultados y generamos identificadores de paciente y tipo de muestra.
+meta <- query$results[[1]]
+meta$patient <- substr(meta$cases, 1, 12)
+meta$type    <- substr(meta$cases, 14, 15)
+
+## Selección de pacientes pareados (tumor vs normal)
+# Buscamos pacientes con ambos tipos: 01 (Primary Tumor) y 11 (Solid Tissue Normal)
+pacientes_pareados <- meta %>%
+  group_by(patient) %>%
+  filter(all(c("01", "11") %in% type)) %>%
+  pull(patient) %>% unique()
+
+cat("Pacientes con muestras pareadas:", length(pacientes_pareados), "\n")
+```
+
+## 2.1 Descarga de datos (opcional)
+
+> ⏰ Esta celda tarda 10-20 minutos y descarga \~2 GB. Después ya no la vuelvas a ejecutar.
+
+```{r descarga, eval=FALSE}
+# Descarga solo esos pacientes
+# Con el vector de barcodes descargamos los ficheros y preparamos un SummarizedExperiment.
+query_pareados <- GDCquery(
+  project = "TCGA-LUAD",
+  data.category = "DNA Methylation",
+  platform = "Illumina Human Methylation 450",
+  data.type = "Methylation Beta Value",
+  barcode = meta$cases[meta$patient %in% pacientes_pareados]
+)
+
+# Descargar (puede tardar) y preparar en memoria. Ajusta 'directory' si usas otra carpeta.
+GDCdownload(query_pareados, directory = here("data"))
+luad_data <- GDCprepare(query_pareados, directory = here("data"))
+
+# Guardamos un RDS para poder reanudar el análisis sin volver a descargar.
+saveRDS(luad_data, here("data", "LUAD_pareados_raw.rds"))
+```
+
+## 3. Cargar los datos
+
+```{r cargar}
+## CHECKPOINT: Si ya descargaste y guardaste los datos, puedes iniciar aquí cargando el RDS.
+luad_data <- readRDS(here("data", "LUAD_pareados_raw.rds"))
+luad_data
+```
+
+## 4. Descarga de anotación de las sondas del microarreglo
+
+```{r sesame, eval=TRUE}
+# Esto descarga automáticamente la anotación 450K la primera vez (~50 MB) y la guarda en caché para siempre
+sesameDataCache(c("HM450.probeInfo","genomeInfo.hg38","HM450.address"))
+promoter_probes <- sesameData_getProbesByGene(NULL, "HM450", promoter = TRUE)
+cat("Número de CpGs en promotor:", nrow(promoter_probes), "\n")
+```
+
+## 5. Genes de interés y filtrado de promotores
+
+```{r genes}
+# Cambia o amplía esta lista según tus genes candidatos
+genes_interes <- c("CDKN2A", "CDH13", "MIR137", "MGMT", "DAPK1", 
+           "RARB", "RASSF1", "AHRR", "GSTP1", "CASC8")
+
+# Obtener sondas de promotor para cada gen
+sondas_promotor <- lapply(genes_interes, function(gen) {
+  sesameData_getProbesByGene(gen, "HM450", promoter = TRUE)
+})
+names(sondas_promotor) <- genes_interes
+
+#Checkpoint en caso de falla de sesame
+# saveRDS(sondas_promotor, here("data", "sondas_promotor.rds"))
+# También se puede cargar desde aquí para facilitar el proceso
+# sondas_promotor <- readRDS(here("data", "sondas_promotor.rds"))
+
+# Ver cuántas sondas hay por gen
+sapply(sondas_promotor, length)
+rownames(as.data.frame(sondas_promotor$CDKN2A))
+
+# Filtrado de la matriz para quedarnos solo con las sondas de interés 
+sondas_df <- bind_rows(lapply(names(sondas_promotor), function(gen) {
+  df <- as.data.frame(sondas_promotor[[gen]])
+  df$gene <- gen
+  df$probe <- rownames(df)
+  return(df)
+}), .id = NULL) %>%
+  distinct(probe, .keep_all = TRUE)   # por si alguna sonda está en dos promotores
+
+# Obtenemos la matriz de valores betas y la anotación de las sondas del microarreglo 450k
+beta <- assay(luad_data)                               # CpGs x muestras
+beta_promotores <- beta[sondas_df$probe, ]             # CpGs en promotor x muestras
+rowData <- sondas_df$gene
+
+cat("Total de CpGs en promotores de genes de interés:", nrow(beta_promotores), "\n")
+
+```
+
+## 6. Alineación de muestras pareadas (una columna por paciente y tipo)
+
+```{r alineacion}
+alinear_muestras <- function(mat) {
+  col_info <- colnames(mat) # Obtiene los ids de las muestras
+  paciente <- substr(col_info, 1, 12) # Extrae el código del paciente (TCGA-XX-XXXX)
+# Extrae el tipo de muestra: "01" = tumor primario, "11" = tejido normal, etc.
+  tipo     <- ifelse(substr(col_info, 14, 15) == "01", "Tumor", "Normal")
+  id       <- paste(paciente, tipo, sep = "_") # Une el código del paciente y el tipo de muestra
+  
+# -------------------------------------------------
+# Promediar duplicados (por si acaso hubiera más de una muestra del mismo tipo para un paciente)
+# -------------------------------------------------
+  mat_t    <- t(mat) # Transpone la matriz para que las muestras queden como filas
+  mat_aggr <- aggregate(mat_t, by = list(id), FUN = mean) # Promedia posibles duplicados
+  rownames(mat_aggr) <- mat_aggr$Group.1 # Pone como nombres de fila el identificador paciente_tipo
+  mat_aggr <- mat_aggr[, -1] %>% t() # Elimina la columna auxiliar "Group.1" que creó aggregate y retorna al orden original
+  
+# -------------------------------------------------
+# Ordenar las columnas: primero todas las muestras Normal, luego todas las Tumor
+# -------------------------------------------------
+  normal <- grep("_Normal$", colnames(mat_aggr)) # Índice de muestras con sufijo "_Normal"
+  tumor  <- grep("_Tumor$",  colnames(mat_aggr)) # Índice de muestras con sufijo "_Tumor"
+  mat_aggr[, c(sort(normal), sort(tumor))] # Reordena las columnas por orden alfabético y Normal → Tumor
+}
+
+luad_alineado <- alinear_muestras(beta_promotores)
+
+row_sums <- rowSums(luad_alineado, na.rm = TRUE)# Calcula la suma de valores beta por cada fila (es decir, por cada CpG/probe)
+luad_alineado<-luad_alineado[!row_sums == 0 & !is.na(row_sums),] # Filtra la matriz: elimina aquellas sondas (filas) cuya suma de betas sea exactamente 0
+
+luad_alineado[1:6, c(1:4,30:33)]
+```
+
+## 7. Formato largo para realizar análisis y gráficos
+
+```{r formato-largo}
+# 1. Convertir la matriz alineada a formato largo (tidy)
+luad_long <- luad_alineado %>%
+  as.data.frame() %>%
+  rownames_to_column("probe") %>%
+  pivot_longer(-probe, names_to = "sample", values_to = "beta") %>%
+  separate(sample, into = c("patient", "group"), sep = "_") %>%
+  mutate(group = factor(group, levels = c("Normal", "Tumor")))
+
+# 2. Añadir el nombre del gen correspondiente a cada probe con sondas_df (contiene probe → gene)
+luad_long <- luad_long %>%
+  left_join(
+    sondas_df %>% select(probe, gene),   # Solo necesitamos probe y gene
+    by = "probe"
+  )
+
+# 3. Reordenar columnas para que quede más limpio
+luad_long <- luad_long %>%
+  select(probe, gene, patient, group, beta)
+
+# 5. Verificar que todo salió bien
+cat("Dimensiones de luad_long:", dim(luad_long), "\n")
+cat("Genes estudiados:", paste(unique(luad_long$gene), collapse = ", "), "\n")
+head(luad_long)
+```
+
+# 8. Visualizaciones preliminares:
+
+## 8.1 Distribución global (densidad)
+
+```{r densidad}
+# Densidad de valores beta por grupo
+ggplot(luad_long, aes(x = beta, fill = group)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_manual(values = c("Normal" = "#56B4E9", "Tumor" = "#F44336")) +
+  labs(title = "Distribución global de metilación",
+       subtitle = "Comparación Tumor vs Normal",
+       x = "Valor β (metilación)",
+       y = "Densidad",
+       fill = "Grupo") +
+  theme_minimal(base_size = 14)
+```
+
+## 8.2 Boxplots
+
+```{r boxplot}
+ggplot(luad_long, aes(x = group, y = beta, color = group)) +
+  geom_boxplot() +
+  facet_wrap(~ gene, scales = "free_y") +
+  theme_minimal() +
+  labs(title = "Metilación en región promotora de genes de interés en adenocarcinoma pulmonar",
+       subtitle = "Datos de microarreglos de metilación del proyecto TCGA-LUAD")
+```
+
+## 9. Análisis estadístico: Wilcoxon + FDR por cada sitio CG
+
+```{r estadistica CG}
+resultados <- luad_long %>%
+  group_by(probe, gene) %>%
+  summarise(p_val = wilcox.test(beta ~ group)$p.value,
+            .groups = "drop") %>%
+  group_by(gene) %>%
+  mutate(p_adj_gen = p.adjust(p_val, method = "fdr")) %>%
+  ungroup() %>%
+  arrange(p_adj_gen)
+
+# Filtrar CpGs significativos
+cpgs_sig <- resultados %>% filter(p_adj_gen < 0.05)
+
+cat("CpGs significativos (FDR < 0.05 por gen):", nrow(cpgs_sig), "\n")
+# Ver los top resultados
+head(cpgs_sig)
+```
+
+## 9.1 Análisis estadístico: Wilcoxon + FDR por cada gen
+
+```{r estadistica gen}
+# Agregar a nivel de gen (promediando las probes)
+resultados_gen <- luad_long %>%
+  group_by(gene, patient, group) %>%
+  summarise(beta_promedio = mean(beta, na.rm = TRUE),
+            n_probes = n_distinct(probe),  # Calcular aquí el número de probes
+            .groups = "drop") %>%
+  group_by(gene) %>%
+  summarise(
+    p_val = wilcox.test(beta_promedio ~ group)$p.value,
+    mean_normal = mean(beta_promedio[group == "Normal"], na.rm = TRUE),
+    mean_tumor = mean(beta_promedio[group == "Tumor"], na.rm = TRUE),
+    delta_beta = mean_tumor - mean_normal,
+    n_probes = first(n_probes),  # Tomar el valor (es el mismo para todos)
+    .groups = "drop"
+  ) %>%
+  mutate(p_adj = p.adjust(p_val, method = "fdr")) %>%
+  arrange(p_adj)%>%
+  select(gene, n_probes, mean_normal, mean_tumor, delta_beta, p_val, p_adj)
+
+# Genes significativos
+genes_sig <- resultados_gen %>% filter(p_adj < 0.05)
+cat("Genes significativos (FDR < 0.05):", nrow(genes_sig), "\n")
+head(genes_sig)
+```
+
+## 9.2 Exportación del análisis estadístico
+
+```{r exportar análisis estadistico}
+# Crear lista con ambas hojas
+lista_resultados <- list(
+  "Sitios CpG significativos" = cpgs_sig,
+  "Genes dif. metilados" = genes_sig
+)
+
+# Exportar a Excel
+write_xlsx(lista_resultados, here("results", "Resultados_análisis_estadístico_LUAD.xlsx"))
+
+cat("Archivo exportado: resultados_metilacion.xlsx\n")
+cat("- Hoja 1: Sitios CpG significativos (", nrow(cpgs_sig), " filas)\n")
+cat("- Hoja 2: Genes diferencialmente metilados (", nrow(genes_sig), " filas)\n")
+```
+
+# 10. Visualizaciones finales:
+
+## 10.1 Histograma de valores p
+
+```{r histograma}
+# Distribución de p-valores (QC)
+ggplot(resultados, aes(x = p_val)) +
+  geom_histogram(bins = 50, fill = "#56B4E9", color = "black", alpha = 0.7) +
+  labs(title = "Distribución de p-valores",
+       subtitle = "Control de calidad del análisis estadístico",
+       x = "p-valor",
+       y = "Frecuencia") +
+  theme_minimal(base_size = 14)
+```
+
+## 10.2 Barplot de la cantidad de CpGs significativos por gen
+
+```{r barplot de cgs significativos}
+# Conteo de CpGs significativos por gen
+cpgs_sig %>%
+  count(gene) %>%
+  arrange(desc(n)) %>%
+  head(20) %>%
+  mutate(gene = reorder(gene, n)) %>%
+  ggplot(aes(x = n, y = gene)) +
+  geom_col(fill = "#56B4E9") +
+  geom_text(aes(label = n), hjust = -0.2, size = 3.5) +
+  labs(title = "Número de CpGs significativos por gen",
+       x = "Número de CpGs (FDR < 0.05)",
+       y = "") +
+  theme_minimal(base_size = 14) +
+  xlim(0, max(cpgs_sig %>% count(gene) %>% pull(n)) * 1.1)
+```
+
+## 10.3 Histograma de valores p
+
+```{r pca}
+
+# PCA a nivel de gen (más robusto, menos NAs)
+pca_data <- luad_long %>%
+  filter(gene %in% genes_sig$gene) %>%
+  group_by(gene, patient, group) %>%
+  summarise(beta_mean = mean(beta, na.rm = TRUE), .groups = "drop") %>%
+  mutate(sample_id = paste0(patient, "_", group)) %>%
+  select(gene, sample_id, beta_mean, group) %>%
+  pivot_wider(names_from = gene, values_from = beta_mean)
+
+# Limpiar NAs
+pca_data_clean <- pca_data %>% drop_na()
+
+# Matriz para PCA
+pca_matrix <- pca_data_clean %>% select(-sample_id, -group) %>% as.matrix()
+
+# Ejecutar PCA
+pca_res <- prcomp(pca_matrix, scale. = TRUE, center = TRUE)
+
+# Crear dataframe
+pca_df <- data.frame(
+  PC1 = pca_res$x[, 1],
+  PC2 = pca_res$x[, 2],
+  grupo = pca_data_clean$group,
+  sample = pca_data_clean$sample_id
+)
+
+# Varianza explicada
+var_exp <- round(100 * summary(pca_res)$importance[2, 1:2], 1)
+
+# Visualizar
+ggplot(pca_df, aes(x = PC1, y = PC2, color = grupo)) +
+  geom_point(size = 3, alpha = 0.7) +
+  stat_ellipse(level = 0.95, linewidth = 1) +
+  scale_color_manual(values = c("Normal" = "#56B4E9", "Tumor" = "#F44336")) +
+  labs(
+    title = "PCA - Genes diferencialmente metilados",
+    subtitle = paste("n =", nrow(pca_df), "muestras ·", ncol(pca_matrix), "genes"),
+    x = paste0("PC1 (", var_exp[1], "%)"),
+    y = paste0("PC2 (", var_exp[2], "%)"),
+    color = "Grupo"
+  ) +
+  theme_minimal(base_size = 14)
+```
+
+## 10.4 Barplot de genes con cambios significativos
+
+```{r barplot}
+# Top genes por delta beta
+genes_sig %>%
+  arrange(desc(abs(delta_beta))) %>%
+  mutate(gene = reorder(gene, delta_beta)) %>%
+  ggplot(aes(x = delta_beta, y = gene, fill = delta_beta > 0)) +
+  geom_col() +
+  scale_fill_manual(values = c("TRUE" = "#F44336", "FALSE" = "#56B4E9"),
+                    labels = c("Hipometilado", "Hipermetilado")) +
+  labs(title = "Genes diferencialmente metilados",
+       x = "Δβ (Tumor - Normal)",
+       y = "",
+       fill = "Dirección") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "bottom")
+```
+
+## 10.5 Heatmap de CpGs significativos
+
+```{r heatmap, fig.width=11}
+if (nrow(cpgs_sig) > 0) {
+  mat_sig <- luad_alineado[cpgs_sig$probe, ]
+  
+  # Anotación de filas
+  anno_row <- data.frame(
+    Gen = cpgs_sig$gene[match(rownames(mat_sig), cpgs_sig$probe)],
+    row.names = rownames(mat_sig)
+  )
+  
+  # Anotación de columnas
+  anno_col <- data.frame(
+    Tejido = ifelse(grepl("_Normal$", colnames(mat_sig)), "Normal", "Tumoral"),
+    row.names = colnames(mat_sig)
+  )
+  
+  # Colores personalizados
+  anno_colors <- list(
+    Tejido = c(Normal = "#56B4E9", Tumoral = "#F44336")
+  )
+  
+  pheatmap(mat_sig,
+           cluster_rows = TRUE,
+           cluster_cols = TRUE,
+           
+           show_rownames = ifelse(nrow(mat_sig) < 50, TRUE, FALSE),
+           show_colnames = FALSE,
+           annotation_row = anno_row,
+           annotation_col = anno_col,
+           annotation_colors = anno_colors,
+           main = "CpGs significativos en promotores (LUAD - Tejido Tumoral vs Normal)",
+           fontsize = 10)
+}
+
+```
+
+## 10.6 Heatmap de genes significativos
+
+```{r }
+if (nrow(genes_sig) > 0) {
+  # Crear matriz agregada por gen
+  mat_gen <- luad_long %>%
+    filter(gene %in% genes_sig$gene) %>%
+    group_by(gene, patient, group) %>%
+    summarise(beta_promedio = mean(beta, na.rm = TRUE), .groups = "drop") %>%
+    mutate(sample_id = paste0(patient, "_", group)) %>%
+    select(gene, sample_id, beta_promedio) %>%
+    pivot_wider(names_from = sample_id, values_from = beta_promedio) %>%
+    column_to_rownames("gene") %>%
+    as.matrix()
+  
+  # Anotación de columnas
+  anno_col <- data.frame(
+    Tejido = ifelse(grepl("_Normal$", colnames(mat_gen)), "Normal", "Tumoral"),
+    row.names = colnames(mat_gen)
+  )
+  
+  # Colores personalizados
+  anno_colors <- list(
+    Tejido = c(Normal = "#56B4E9", Tumoral = "#F44336")
+  )
+  
+  pheatmap(mat_gen,
+           cluster_rows = TRUE,
+           cluster_cols = TRUE,
+           show_rownames = TRUE,  # Mostrar nombres de genes
+           show_colnames = FALSE,
+           annotation_col = anno_col,
+           annotation_colors = anno_colors,
+           main = "Genes diferencialmente metilados (LUAD - Tejido Tumoral vs Normal)",
+           fontsize = 10)
+}
+```
+
+## 10.7 Violin + boxplots por gen (solo genes significativos)
+
+```{r violin simple}
+for (g in genes_sig$gene) {
+  dat <- luad_long %>% filter(gene == g)
+  
+  p <- ggplot(dat, aes(x = group, y = beta, fill = group)) +
+    geom_violin(trim = FALSE, alpha = 0.8) +
+    geom_boxplot(width = 0.25, outlier.alpha = 0) +
+    scale_fill_manual(values = c("Normal" = "#56B4E9", "Tumor" = "#F44336")) +
+    labs(title = paste("Gen:", g),
+         subtitle = paste("n =", length(unique(dat$probe)), "CpGs · FDR más bajo =", 
+                          format(min(cpgs_sig$p_adj_gen[cpgs_sig$gene == g]), scientific = TRUE, digits = 3)),
+         y = "Valor β (metilación)",
+         x = "") +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none")
+  
+  print(p)
+}
+```
+
+## 10.8 Violin + boxplots por gen **con cada observación resaltada** (solo genes significativos)
+
+```{r violin puntos}
+for (g in genes_sig$gene) {
+  dat <- luad_long %>% filter(gene == g)
+  
+  p <- ggplot(dat, aes(x = group, y = beta, fill = group)) +
+    geom_violin(trim = FALSE, alpha = 0.6) +
+    geom_boxplot(width = 0.25, outlier.alpha = 0, alpha = 0.7) +
+    geom_jitter(width = 0.15, alpha = 0.4, size = 1.5) +
+    scale_fill_manual(values = c("Normal" = "#56B4E9", "Tumor" = "#F44336")) +
+    labs(title = paste("Gen:", g),
+         subtitle = paste("n =", length(unique(dat$probe)), "CpGs · FDR más bajo =", 
+                          format(min(cpgs_sig$p_adj_gen[cpgs_sig$gene == g]), scientific = TRUE, digits = 3)),
+         y = "Valor β (metilación)",
+         x = "") +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none")
+  
+  print(p)
+}
+```
+
+## 10.9 Violin + boxplots por gen **conectando cada CG entre los tipos de tejido** (solo genes significativos)
+
+```{r violin líneas}
+for (g in genes_sig$gene) {
+  dat <- luad_long %>% filter(gene == g)
+  
+  p <- ggplot(dat, aes(x = group, y = beta, fill = group)) +
+    geom_violin(trim = FALSE, alpha = 0.6) +
+    geom_boxplot(width = 0.25, outlier.alpha = 0, alpha = 0.7) +
+    geom_line(aes(group = interaction(patient, probe)), alpha = 0.2, color = "gray50") +
+    geom_point(aes(color = group), alpha = 0.5, size = 2, 
+               position = position_jitter(width = 0.1)) +
+    scale_fill_manual(values = c("Normal" = "#56B4E9", "Tumor" = "#F44336")) +
+    scale_color_manual(values = c("Normal" = "#56B4E9", "Tumor" = "#F44336")) +
+    labs(title = paste("Gen:", g),
+         subtitle = paste("n =", length(unique(dat$probe)), "CpGs · FDR más bajo =", 
+                          format(min(cpgs_sig$p_adj_gen[cpgs_sig$gene == g]), scientific = TRUE, digits = 3)),
+         y = "Valor β (metilación)",
+         x = "") +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none")
+  
+  print(p)
+}
+```
+
+## Mensaje Final
+
+¡Felicidades! Has completado el análisis de metilación del ADN del proyecto **TCGA-LUAD**.
+
+En este ejercicio aprendiste a:
+
+#### **1. Gestionar datos de metilación 450K del TCGA**
+
+-   Descargar y organizar datos del proyecto TCGA-LUAD.\
+-   Seleccionar únicamente **muestras pareadas** (tejido tumoral y normal del mismo paciente).\
+-   Filtrar sondas CpG ubicadas en **regiones promotoras** de genes candidatos.
+
+#### **2. Comparar metilación entre tejido tumoral y normal**
+
+Aplicaste análisis estadísticos tanto a nivel de sonda como de gen: - **Wilcoxon probe-wise:** comparación por CpG individual\
+- **Wilcoxon gene-wise:** agregación de CpGs por gen para evaluar cambios globales\
+- Corrección por múltiples comparaciones mediante **FDR**
+
+#### **3. Identificar cambios epigenéticos relevantes**
+
+-   CpGs y genes diferencialmente metilados\
+-   Cálculo de **Δβ (delta beta)** entre grupos\
+-   Ajuste de valores p a nivel de gen y globalmente
+
+#### **4. Visualizar resultados de forma informativa**
+
+-   Heatmaps de CpGs significativos con anotaciones de genes\
+-   Heatmaps a nivel de gen (promedios o medianas de sondas)\
+-   Anotaciones de tipo de muestra (Normal vs Tumoral) mediante códigos de color
+
+#### **5. Exportar resultados**
+
+-   Generación de un archivo Excel con resultados organizados en **múltiples hojas** para facilitar análisis posteriores.
+
+------------------------------------------------------------------------
+
+Este flujo de trabajo te proporciona una base para comenzar a experimentar con datos de repositorios públicos y para automatizar el análisis estadístico, de modo que puedas plantear proyectos con hipótesis preliminares basadas en datos (*data-driven*).
