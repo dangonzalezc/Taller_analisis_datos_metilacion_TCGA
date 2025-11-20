@@ -12,7 +12,7 @@ format:
     code-fold: true
     code-tools: true
     highlight-style: ayu-mirage
-    self-contained: true   # importante para que todo quede en un solo archivo
+    self-contained: true
 project:
   type: website
   output-dir: docs
@@ -49,6 +49,16 @@ if (!require("pacman", quietly = TRUE)) install.packages("pacman")
 pacman::p_load(dplyr, tidyr, tidyverse, ggplot2, pheatmap, openxlsx, writexl, here, patchwork, factoextra, FactoMineR)
 ```
 
+::: callout-note
+## Solución de errores de instalación
+
+Es **totalmente normal** que falle la instalación de uno o varios paquetes, incluso tras varios intentos. Ante esto:
+
+-   Cuando R pregunte **“Update all/some/none? \[a/s/n\]:”** → siempre escriban en la consola **n** y Enter.
+-   R usualmente indica qué sucede y, en muchos casos, sugiere una solución. Lee cuidadosamente los mensajes de error.
+-   Ante cualquier error que no se entienda copiar las últimas líneas del error y pegarlas en ChatGPT, Grok, Claude o cualquier LLM. En segundos les explica qué sucede y sugiere qué hacer, generalmente lo soluciona o les envía otro error ante lo cual operamos igual hasta solucionar.
+:::
+
 ## 1.2 Carga de paquetes
 
 ```{r cargar-paquetes, eval=TRUE, echo=TRUE, warning=FALSE, message=FALSE}
@@ -82,6 +92,15 @@ cat("sesame version:", as.character(packageVersion("sesame")), "\n")
 
 ```
 
+::: callout-note
+## Si todo se instaló correctamente, al ejecutar este bloque de carga se resalta en un borde de verde y no vemos mensajes de error.
+
+1.  **Si no fue posible instalar *TCGAbiolinks* o falla**\
+    → Pueden ejecutar **desde el bloque 3** sin problema, dado que el archivo comprimido incluye los datos de TCGA-LUAD obtenidos en el paso 2 y 2.1.
+
+2.  **Si no fue posible instalar *sesame* o falla** → Ejecutar normalmente y al llegar al **bloque 5** saltar directamente a la línea `sondas_promotor <- readRDS(here("data", "sondas_promotor.rds"))`, ejecutar de ahí en adelante sin problema.
+:::
+
 ## 2. Consulta de los datos disponibles del proyecto
 
 Hacer los análisis en R nos da la posibilidad de filtrar los sujetos según múltiples variables clínicas y demográficas. En este caso se filtrará para comparar muestras tumorales con tejido normal adyacente del mismo paciente, esto disminuye la cantidad de datos usables, pero asegura que las diferencias observadas se deben principalmente al estado tumoral y no a factores genéticos o ambientales específicos de cada individuo, mejorando la precisión y relevancia biológica del análisis. La codificación del TCGA se encuentra [aquí](https://gdc.cancer.gov/resources-tcga-users/tcga-code-tables).
@@ -114,7 +133,7 @@ cat("Pacientes con muestras pareadas:", length(pacientes_pareados), "\n")
 
 ## 2.1 Descarga de datos (opcional)
 
-> ⏰ Esta celda tarda 10-20 minutos y descarga \~2 GB. Después ya no la vuelvas a ejecutar.
+> ⏰ Esta celda tarda 10-20 minutos y descarga \~2 GB. No es necesario ejecutarla pues los datos están contenidos en la carpeta `data` y pueden cargarse en el paso 3 sin problema.
 
 ```{r descarga, eval=FALSE}
 # Descarga solo esos pacientes
@@ -149,15 +168,15 @@ luad_data
 # Esto descarga automáticamente la anotación 450K la primera vez (~50 MB) y la guarda en caché para siempre
 sesameDataCache(c("HM450.probeInfo","genomeInfo.hg38","HM450.address"))
 promoter_probes <- sesameData_getProbesByGene(NULL, "HM450", promoter = TRUE)
-cat("Número de CpGs en promotor:", nrow(promoter_probes), "\n")
+cat("Número de CpGs en promotor:", nrow(as.data.frame(promoter_probes)), "\n")
 ```
 
 ## 5. Genes de interés y filtrado de promotores
 
 ```{r genes}
 # Cambia o amplía esta lista según tus genes candidatos
-genes_interes <- c("CDKN2A", "CDH13", "MIR137", "MGMT", "DAPK1", 
-           "RARB", "RASSF1", "AHRR", "GSTP1", "CASC8")
+genes_interes <- c("BRCA1", "HBB", "SOX17", "MGMT", "DAPK1", 
+           "RARB", "TIMP3", "AHRR", "GSTP1", "CASC8")
 
 # Obtener sondas de promotor para cada gen
 sondas_promotor <- lapply(genes_interes, function(gen) {
@@ -172,7 +191,7 @@ names(sondas_promotor) <- genes_interes
 
 # Ver cuántas sondas hay por gen
 sapply(sondas_promotor, length)
-rownames(as.data.frame(sondas_promotor$CDKN2A))
+rownames(as.data.frame(sondas_promotor$HBB))
 
 # Filtrado de la matriz para quedarnos solo con las sondas de interés 
 sondas_df <- bind_rows(lapply(names(sondas_promotor), function(gen) {
@@ -258,7 +277,7 @@ head(luad_long)
 
 ## 8.1 Distribución global (densidad)
 
-```{r densidad}
+```{r densidad, warning=FALSE, message=FALSE}
 # Densidad de valores beta por grupo
 ggplot(luad_long, aes(x = beta, fill = group)) +
   geom_density(alpha = 0.6) +
@@ -273,7 +292,7 @@ ggplot(luad_long, aes(x = beta, fill = group)) +
 
 ## 8.2 Boxplots
 
-```{r boxplot}
+```{r boxplot, warning=FALSE, message=FALSE}
 ggplot(luad_long, aes(x = group, y = beta, color = group)) +
   geom_boxplot() +
   facet_wrap(~ gene, scales = "free_y") +
@@ -381,7 +400,7 @@ cpgs_sig %>%
   xlim(0, max(cpgs_sig %>% count(gene) %>% pull(n)) * 1.1)
 ```
 
-## 10.3 Histograma de valores p
+## 10.3 Análisis de componentes principales (PCA)
 
 ```{r pca}
 
@@ -450,7 +469,7 @@ genes_sig %>%
 
 ## 10.5 Heatmap de CpGs significativos
 
-```{r heatmap, fig.width=11}
+```{r heatmap CpGs, fig.width=11}
 if (nrow(cpgs_sig) > 0) {
   mat_sig <- luad_alineado[cpgs_sig$probe, ]
   
@@ -488,7 +507,7 @@ if (nrow(cpgs_sig) > 0) {
 
 ## 10.6 Heatmap de genes significativos
 
-```{r }
+```{r heatmap genes}
 if (nrow(genes_sig) > 0) {
   # Crear matriz agregada por gen
   mat_gen <- luad_long %>%
@@ -526,7 +545,7 @@ if (nrow(genes_sig) > 0) {
 
 ## 10.7 Violin + boxplots por gen (solo genes significativos)
 
-```{r violin simple}
+```{r violin simple, warning=FALSE, message=FALSE}
 for (g in genes_sig$gene) {
   dat <- luad_long %>% filter(gene == g)
   
@@ -548,7 +567,7 @@ for (g in genes_sig$gene) {
 
 ## 10.8 Violin + boxplots por gen **con cada observación resaltada** (solo genes significativos)
 
-```{r violin puntos}
+```{r violin puntos, warning=FALSE, message=FALSE}
 for (g in genes_sig$gene) {
   dat <- luad_long %>% filter(gene == g)
   
@@ -571,7 +590,7 @@ for (g in genes_sig$gene) {
 
 ## 10.9 Violin + boxplots por gen **conectando cada CG entre los tipos de tejido** (solo genes significativos)
 
-```{r violin líneas}
+```{r violin líneas, warning=FALSE, message=FALSE}
 for (g in genes_sig$gene) {
   dat <- luad_long %>% filter(gene == g)
   
