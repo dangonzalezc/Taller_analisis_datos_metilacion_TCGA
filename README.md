@@ -23,7 +23,7 @@ Al finalizar este taller, los participantes serán capaces de realizar un flujo 
 Debido al tamaño de los datos genómicos, este repositorio utiliza el sistema de **Releases** de GitHub para distribuir los archivos necesarios.
 
 2.  **Descargar los Datos (Importante):**
-      * Ve a la sección [Releases](https://github.com/dangonzalezc/Taller_analisis_datos_metilacion_TCGA/releases) (a la derecha de la página principal del repositorio) y da clic en `Taller_análisis_datos_metilación_TCGA.7z` para descargar el archivo comprimido del taller. 
+      * Ve a la sección [Releases](https://github.com/dangonzalezc/Taller_analisis_datos_metilacion_TCGA/releases) (a la derecha de la página principal del repositorio) y da clic en `Taller_análisis_datos_metilación_TCGA.zip` para descargar el archivo comprimido del taller. 
       * Descomprime el archivo y ubica la carpeta en el directorio donde vas a guardar el trabajo.
 3.  **Ejecutar:**
       * Abre el archivo `.Rproj` en RStudio.
@@ -42,4 +42,5 @@ Este material está bajo la licencia MIT. Eres libre de usarlo, compartirlo y mo
 **Cómo citar este taller:**
 
 > González, D. (2025). Taller: Análisis de Metilación de ADN (TCGA-LUAD). GitHub. https://github.com/dangonzalezc/Taller_analisis_datos_metilacion_TCGA
+
 
