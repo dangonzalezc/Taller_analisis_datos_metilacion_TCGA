@@ -47,7 +47,7 @@ Datos preliminares de RNA-seq en modelos PDX (Patient-Derived Xenografts) de cá
 
 Análisis bioinformáticos preliminares de su grupo indican que este gen no presenta mutaciones driver (SNVs o Indels) en la secuencia codificante. Por lo tanto, se sospecha que su regulación epigenética podría estar alterada en el contexto tumoral.
 
-La hipótesis de trabajo es que *LINC01482* actúa como un oncogén condicional activado por hipometilación del promotor en el contexto tumoral. Su tarea es validar este mecanismo y demostrar su relevancia funcional mediante edición epigenética dirigida.
+La hipótesis de trabajo es que *LINC01482* actúa como un oncogén condicional activado por hipometilación del promotor en el contexto tumoral. Su tarea es explorar la información conocida del gen incluyendo su función, estructura y regulación y diseñar los primers para un ensayo de qMSP para evaluar su estado de metilación.
 
 ---
 
@@ -70,7 +70,7 @@ La hipótesis de trabajo es que *LINC01482* actúa como un oncogén condicional 
 **Objetivo:** Visualizar el contexto regulador del gen utilizando pistas genómicas de referencia.
 
 1. Abrir el **UCSC Genome Browser** u otro navegador genómico comparable.  
-2. Ubicar el locus del gen X y activar las *regulatory tracks*:  
+2. Ubicar el locus del gen y activar las *regulatory tracks*:  
    - DNase/ATAC-seq (accesibilidad).  
    - ChIP-seq de marcadores epigenéticos (H3K27ac, H3K4me1, H3K4me3).  
    - Factores de transcripción (TF ChIP-seq).  
@@ -96,10 +96,8 @@ La hipótesis de trabajo es que *LINC01482* actúa como un oncogén condicional 
 **Objetivo:** Descargar la secuencia genómica y transcripcional necesaria para análisis posteriores.
 
 1. Acceder a **Ensembl** (https://www.ensembl.org/).  
-2. Localizar el gen X y descargar:  
-   - Secuencia genómica completa.  
-   - Secuencia de transcritos (isoformas relevantes).  
-   - Anotaciones de promotores, coordenadas de exones e islas CpG.  
+2. Localizar el gen y descargar su secuencia genómica completa incluyendo 3kb *upstream*.
+3. Descargar la secuencia de las primeras 4kb del gen.
 
 ---
 
@@ -107,7 +105,7 @@ La hipótesis de trabajo es que *LINC01482* actúa como un oncogén condicional 
 **Objetivo:** Identificar regiones candidatas para análisis de metilación y generar primers para qMSP.
 
 1. Utilizar **MethPrimer** (https://methprimer.com/).  
-2. Cargar o pegar la secuencia del promotor o de la región CpG relevante.  
+2. Cargar o pegar la secuencia obtenida en el paso 4.3 o de la región CpG relevante.  
 3. Realizar:  
    - Escaneo de islas CpG.  
    - Predicción de regiones susceptibles a metilación.  
@@ -120,7 +118,7 @@ La hipótesis de trabajo es que *LINC01482* actúa como un oncogén condicional 
 **Objetivo:** Integrar los hallazgos para formular hipótesis epigenéticas sólidas.
 
 - Identificar patrones regulatorios relevantes (enhancers, TSS, islas CpG, accesibilidad).  
-- Interpretar si la metilación del gen X podría estar asociada a su desregulación en cáncer.  
+- Interpretar si la metilación del gen podría estar asociada a su desregulación en cáncer.  
 - Proponer experimentos de validación para guiar futuros estudios en modelos murinos.
 
 ---
