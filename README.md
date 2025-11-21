@@ -1,4 +1,4 @@
-# 🧬 Taller: Análisis de Metilación de ADN (TCGA-LUAD)
+# 🧬 Taller: Análisis de datos de metilación del TCGA-LUAD
 
 Este repositorio contiene el material práctico, código y flujos de trabajo para el taller de análisis de datos epigenéticos utilizando R y Bioconductor. Nos centraremos en datos de Adenocarcinoma de Pulmón (LUAD) provenientes del programa *The Cancer Genome Atlas* (TCGA).
 
@@ -35,12 +35,9 @@ Debido al tamaño de los datos genómicos, este repositorio utiliza el sistema d
   * **RStudio**
   * Paquetes necesarios: `TCGAbiolinks`, `SummarizedExperiment`, `tidyverse`, `knitr` (se instalan en el primer bloque del script).
 
-## 📄 Licencia y Citación
-
-Este material está bajo la licencia MIT. Eres libre de usarlo, compartirlo y modificarlo, siempre y cuando des el crédito correspondiente.
+## 📄 Licencia y Uso Académico
+Este recurso didáctico está amparado por la licencia Creative Commons Atribución 4.0 Internacional (CC BY 4.0). Dicha licencia garantiza la libertad de la comunidad educativa y académica para utilizar, compartir y adaptar el material sin restricciones, siempre y cuando se reconozca la autoría original de manera clara y explícita. La información de citación requerida para tal reconocimiento se presenta a continuación.
 
 **Cómo citar este taller:**
 
-> González, D. (2025). Taller: Análisis de Metilación de ADN (TCGA-LUAD). GitHub. https://github.com/dangonzalezc/Taller_analisis_datos_metilacion_TCGA
-
-
+> González Cubides, D. M. (2025). Taller: Análisis de datos de metilación del TCGA-LUAD (v1.1). Zenodo. https://doi.org/10.5281/zenodo.17676206
