@@ -36,9 +36,8 @@ Debido al tamaño de los datos genómicos, este repositorio utiliza el sistema d
   * Paquetes necesarios: `TCGAbiolinks`, `SummarizedExperiment`, `tidyverse`, `knitr` (se instalan en el primer bloque del script).
 
 ## 📄 Licencia y Uso Académico
-Este recurso didáctico está amparado por la licencia Creative Commons Atribución 4.0 Internacional (CC BY 4.0). Dicha licencia garantiza la libertad de la comunidad educativa y académica para utilizar, compartir y adaptar el material sin restricciones, siempre y cuando se reconozca la autoría original de manera clara y explícita. La información de citación requerida para tal reconocimiento se presenta a continuación.
+Este recurso didáctico está amparado por la licencia Creative Commons Atribución-CompartirIgual 4.0 Internacional (CC BY-SA 4.0). Dicha licencia garantiza la libertad de la comunidad educativa y académica para utilizar, compartir y adaptar el material sin restricciones, siempre y cuando se reconozca la autoría original de manera clara. Si el material es modificado y posteriormente distribuido al público, debe serlo bajo esta misma licencia, garantizando el libre acceso. La información de citación requerida para el reconocimiento de autoría se presenta a continuación.
 
-**Cómo citar este taller:**
+**Cómo citar:**
 
 > González Cubides, D. M. (2025). Taller: Análisis de datos de metilación del TCGA-LUAD (v1.1). Zenodo. https://doi.org/10.5281/zenodo.17676206
-
