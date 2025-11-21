@@ -2,7 +2,7 @@
 
 Este repositorio contiene el material práctico, código y flujos de trabajo para el taller de análisis de datos epigenéticos utilizando R y Bioconductor. Nos centraremos en datos de Adenocarcinoma de Pulmón (LUAD) provenientes del programa *The Cancer Genome Atlas* (TCGA).
 
-## 🎯 Objetivos del Aprendizaje
+## 🎯 Objetivos de aprendizaje
 
 Al finalizar este taller, los participantes serán capaces de realizar un flujo de trabajo completo de análisis bioinformático, incluyendo:
 
@@ -41,3 +41,4 @@ Este recurso didáctico está amparado por la licencia Creative Commons Atribuci
 **Cómo citar este taller:**
 
 > González Cubides, D. M. (2025). Taller: Análisis de datos de metilación del TCGA-LUAD (v1.1). Zenodo. https://doi.org/10.5281/zenodo.17676206
+
