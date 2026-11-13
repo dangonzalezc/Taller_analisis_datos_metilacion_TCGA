@@ -39,7 +39,161 @@ Ambos tipos de herramientas tienen ventajas y desventajas, dependiendo de la exp
 - **GENCODE/Ensembl**: Recurso integral para la anotación de genes y transcritos en genomas de referencia. Además de información sobre isoformas, pseudogenes, variantes y anotaciones funcionales, proporciona acceso directo a las secuencias genómicas, de transcritos y de proteínas, permitiendo su descarga y consulta para análisis bioinformáticos. Enlace: https://www.ensembl.org/
 
 ---
-# Taller práctico - Primera parte: Regulación Epigenética de un Gen Implicado en Cáncer  
+# 🧬 Taller: Herramientas computacionales para el análisis de un gen
+
+**Estructura · Función · Regulación · Epigenética · Cáncer**
+
+Escoge **un gen humano** y sigue el video. En cada paso tienes el link y lo mínimo que debes buscar. Toma **capturas de pantalla** de cada resultado: las vas a necesitar para tus diapositivas.
+
+> 💡 Usa siempre el **símbolo oficial** del gen (ej. `TP53`, `MLH1`, `CDKN2A`) y la especie **Homo sapiens**. Ensamblaje del genoma: **hg38 / GRCh38**.
+
+---
+
+## Índice
+1. [Información general del gen](#1-información-general-del-gen)
+2. [Regiones reguladoras, PTM y mutaciones](#2-regiones-reguladoras-ptm-y-mutaciones)
+3. [Isoformas y primers de expresión](#3-isoformas-y-primers-de-expresión)
+4. [Red de interacciones](#4-red-de-interacciones)
+5. [Marcas epigenéticas](#5-marcas-epigenéticas)
+6. [Islas CpG y primers MSP](#6-islas-cpg-y-primers-msp)
+7. [Metilación y expresión en cáncer](#7-metilación-y-expresión-en-cáncer)
+8. [Entregable](#-entregable)
+
+---
+
+## 1. Información general del gen
+
+❓ *¿Por qué este gen es interesante para ustedes? ¿Cuál es su ubicación, longitud y función? ¿Enfermedades asociadas?*
+
+| Herramienta | Link |
+|---|---|
+| GeneCards | https://www.genecards.org |
+| OMIM | https://www.omim.org |
+
+**Qué hacer:**
+- En **GeneCards**, busca tu gen → revisa *Aliases*, *Summaries*, *Genomic Locations* (cromosoma, coordenadas, tamaño en pb) y *Disorders*.
+- En **OMIM**, busca el gen → anota fenotipos/enfermedades asociadas y su número MIM.
+
+---
+
+## 2. Regiones reguladoras, PTM y mutaciones
+
+❓ *¿Cuántas regiones reguladoras (promotores/enhancers) tiene descritas? ¿Es regulado por PTM? ¿Mutaciones descritas?*
+
+| Herramienta | Link |
+|---|---|
+| GeneCards (GeneHancer) | https://www.genecards.org |
+| UniProt | https://www.uniprot.org |
+
+**Qué hacer:**
+- En **GeneCards** → sección *Genomics* → *Regulatory elements* (GeneHancer): cuenta promotores y enhancers.
+- En **UniProt**, busca el gen (filtra *Human*, entrada **Reviewed** ⭐) → revisa:
+  - *Function*
+  - *PTM / Processing* (fosforilación, acetilación, ubiquitinación…)
+  - *Disease & Variants* (mutaciones descritas)
+
+---
+
+## 3. Isoformas y primers de expresión
+
+❓ *¿Cuántas isoformas tiene? Genere unos primers para medir su expresión.*
+
+| Herramienta | Link |
+|---|---|
+| NCBI Gene | https://www.ncbi.nlm.nih.gov/gene |
+| GenBank / Nucleotide | https://www.ncbi.nlm.nih.gov/nuccore |
+| Primer-BLAST | https://www.ncbi.nlm.nih.gov/tools/primer-blast/ |
+
+**Qué hacer:**
+- En **NCBI Gene**, busca tu gen (Homo sapiens) → sección *mRNA and Protein(s)*: cuenta las isoformas (NM_ / NP_).
+- Copia el número de acceso **NM_** de la isoforma principal.
+- En **Primer-BLAST**: pega el NM_ → organismo *Homo sapiens* → activa *Primer must span an exon-exon junction* → **Get Primers**.
+- Anota: secuencia Fw/Rv, Tm, %GC y tamaño del producto.
+
+---
+
+## 4. Red de interacciones
+
+❓ *¿Con qué otros genes se relaciona?*
+
+| Herramienta | Link |
+|---|---|
+| STRING | https://string-db.org |
+
+**Qué hacer:**
+- *Search* → *Protein by name* → tu gen → *Organism: Homo sapiens* → **Search**.
+- Captura la red. Revisa la pestaña *Analysis* (enriquecimiento GO / KEGG) y anota los principales interactores.
+
+---
+
+## 5. Marcas epigenéticas
+
+❓ *¿Qué marcas epigenéticas tiene asociadas y en qué regiones?*
+
+| Herramienta | Link |
+|---|---|
+| UCSC Genome Browser | https://genome.ucsc.edu/cgi-bin/hgGateway |
+
+**Qué hacer:**
+- Selecciona **Human – GRCh38/hg38** → escribe tu gen → **Go**.
+- Activa los tracks (en *full* o *pack*):
+  - *CpG Islands*
+  - *ENCODE Regulation* → *Layered H3K27Ac*, *H3K4Me1*, *H3K4Me3*
+  - *DNase Clusters* / *TF Clusters*
+- Identifica en qué región (promotor, cuerpo del gen, enhancer) se ubica cada marca.
+
+---
+
+## 6. Islas CpG y primers MSP
+
+❓ *¿Este gen podría ser regulado por metilación del ADN? Escanear CpG en promotor y generar primers MSP.*
+
+| Herramienta | Link |
+|---|---|
+| UCSC Genome Browser | https://genome.ucsc.edu/cgi-bin/hgGateway |
+| MethPrimer | http://www.urogene.org/methprimer/ |
+
+**Qué hacer:**
+- En **UCSC**, ubica la región promotora (≈ −1500 a +500 pb del TSS) → *View* → *DNA* → **Get DNA** → copia la secuencia.
+- En **MethPrimer**: pega la secuencia → selecciona **Pick MSP primers** → **Submit**.
+- Captura el gráfico de islas CpG y anota los primers **M** (metilado) y **U** (no metilado).
+
+---
+
+## 7. Metilación y expresión en cáncer
+
+❓ *¿Su metilación o expresión cambia en cáncer?*
+
+| Herramienta | Link |
+|---|---|
+| UALCAN | https://ualcan.path.uab.edu |
+| TCGA – GDC Data Portal | https://portal.gdc.cancer.gov |
+
+**Qué hacer:**
+- En **UALCAN** → *TCGA* → escribe tu gen → elige un tipo de cáncer → **Explore**.
+- Revisa: *Expression* (tumor vs normal) y *Methylation* (metilación del promotor).
+- Opcional: *Survival* (curva Kaplan-Meier).
+- En **GDC Portal**, busca el gen y revisa las mutaciones más frecuentes en cáncer.
+
+---
+
+## 📤 Entregable
+
+Presentación en **diapositivas** demostrando el ejercicio con tu gen. Mínimo una diapositiva por paso:
+
+- [ ] Portada: nombre del gen y por qué lo escogiste
+- [ ] 1 · Ubicación, longitud, función y enfermedades
+- [ ] 2 · Regiones reguladoras, PTM y mutaciones
+- [ ] 3 · Isoformas + primers de expresión (Primer-BLAST)
+- [ ] 4 · Red de interacciones (STRING)
+- [ ] 5 · Marcas epigenéticas (UCSC)
+- [ ] 6 · Islas CpG + primers MSP (MethPrimer)
+- [ ] 7 · Expresión y metilación en cáncer (UALCAN / TCGA)
+- [ ] Conclusión: ¿cómo se regula tu gen?
+
+> Incluye **capturas de pantalla** de cada herramienta y una frase con tu interpretación.
+
+<!-- This text is completely hidden from the rendered page # Taller práctico - Primera parte: Regulación Epigenética de un Gen Implicado en Cáncer  
 
 
 ## Contexto 
@@ -125,3 +279,4 @@ La hipótesis de trabajo es que *LINC01482* actúa como un oncogén condicional 
 
 ## Cierre de la primera parte del taller  
 Este ejercicio sintetiza la aplicación de herramientas bioinformáticas avanzadas para estudiar la regulación epigenética de un gen implicado en cáncer, desde la exploración funcional hasta el diseño de ensayos experimentales.
+-->
