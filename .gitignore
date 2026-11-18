@@ -1,0 +1,20 @@
+# Dependencias y paquetes
+node_modules/
+vendor/
+venv/
+
+# Archivos de compilación y logs
+dist/
+build/
+*.log
+
+# Variables de entorno y claves (muy importante)
+.env
+config.json
+
+# Archivos generados por el sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivo pesado (Descargar del release v1.1 en caso de necesitarse)
+LUAD_pareados_raw.rds
