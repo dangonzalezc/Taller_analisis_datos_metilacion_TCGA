@@ -25,7 +25,7 @@ Ambos tipos de herramientas tienen ventajas y desventajas, dependiendo de la exp
 **¿Dónde explorar datos sin necesidad de línea de comandos?**
 - **Exploración — UCSC Genome Browser (pistas regulatorias)**: Navegador para visualizar tracks de regulación (ENCODE tracks, conservation, regulatory build). Permite cargar bigWig/bed como tracks personalizados o usar las pistas públicas para explorar señales epigenómicas en loci de interés. Enlace: https://genome.ucsc.edu/
 
-- **UALCAN**: Plataforma para análisis de datos de expresión génica y epigenética en cáncer (incluye metilación de promotores). Permite explorar diferencias entre grupos (tumor vs. normal) y correlaciones con datos clínicos. Enlace: http://ualcan.path.uab.edu/
+- **UALCAN**: Plataforma para análisis de datos de expresión génica y epigenética en cáncer (incluye metilación de promotores). Permite explorar diferencias entre grupos (tumor vs. normal) y correlaciones con datos clínicos. Enlace: https://ualcan.path.uab.edu/
 
 **¿Cómo realizar algunos análisis sin necesidad de línea de comandos?**
 - **LNCBook**: Plataforma/recursos para análisis y anotación de lncRNAs (incluye datos y herramientas para explorar el rol regulador de lncRNAs, expresión y relaciones con marcas epigenéticas). Útil cuando el objetivo es relacionar señales epigenómicas con lncRNAs. Enlace: https://ngdc.cncb.ac.cn/lncbook/home
@@ -151,7 +151,7 @@ Escoge **un gen humano** y sigue el video. En cada paso tienes el link y lo mín
 | Herramienta | Link |
 |---|---|
 | UCSC Genome Browser | https://genome.ucsc.edu/cgi-bin/hgGateway |
-| MethPrimer | http://www.urogene.org/methprimer/ |
+| MethPrimer | https://methprimer.com |
 
 **Qué hacer:**
 - En **UCSC**, ubica la región promotora (≈ −1500 a +500 pb del TSS) → *View* → *DNA* → **Get DNA** → copia la secuencia.

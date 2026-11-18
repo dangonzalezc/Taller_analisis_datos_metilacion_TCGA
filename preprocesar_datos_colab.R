@@ -18,9 +18,10 @@
 
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 BiocManager::install(c("SummarizedExperiment", "GenomicRanges"), ask = FALSE, update = FALSE)
+BiocManager::install("GenomeInfoDb", ask = FALSE, update = FALSE)
 BiocManager::install("remotes", ask = FALSE, update = FALSE)
 BiocManager::install("BioinformaticsFMRP/TCGAbiolinksGUI.data", ask = FALSE, update = FALSE)
-BiocManager::install("BioinformaticsFMRP/TCGAbiolinks", ask = FALSE, update = FALSE)
+#BiocManager::install("BioinformaticsFMRP/TCGAbiolinks", ask = FALSE, update = FALSE)
 BiocManager::install(c("sesame", "sesameData", "BiocParallel"), ask = FALSE, update = FALSE)
 
 suppressPackageStartupMessages({
@@ -31,7 +32,7 @@ suppressPackageStartupMessages({
 })
 
 # --- 1. Datos TCGA-LUAD pareados -------------------------------------------
-setwd("//wsl.localhost/Ubuntu-26.04/home/dangonzalezc/Taller_analisis_datos_metilacion_TCGA")
+setwd("./Taller_analisis_datos_metilacion_TCGA")
 luad_data <- readRDS("data/LUAD_pareados_raw.rds")
 
 beta_total <- assay(luad_data)
@@ -39,12 +40,12 @@ cat("Matriz completa:", nrow(beta_total), "CpGs x", ncol(beta_total), "muestras\
 
 # --- 2. Promotores de todos los genes (misma definición que el tutorial) ----
 # sesameData_getProbesByGene(..., promoter = TRUE) usa una ventana de
-# 1500 pb río arriba y 1500 pb río abajo del TSS. Aquí la replicamos para
+# 1500 pb río arriba y 500 pb río abajo del TSS. Aquí la replicamos para
 # TODOS los genes y guardamos además el nombre del gen de cada sonda.
 sesameDataCache(c("genomeInfo.hg38", "HM450.address"))
 
 UPSTREAM   <- 1500
-DOWNSTREAM <- 1500
+DOWNSTREAM <- 500
 
 txns   <- sesameData_getTxnGRanges("hg38")
 prom   <- promoters(txns, upstream = UPSTREAM, downstream = DOWNSTREAM)
