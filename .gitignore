@@ -18,3 +18,5 @@ Thumbs.db
 
 # Archivo pesado (Descargar del release v1.1 en caso de necesitarse)
 LUAD_pareados_raw.rds
+anno.rds
+sondas_promotor.rds
