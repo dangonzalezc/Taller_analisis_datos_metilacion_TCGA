@@ -17,6 +17,7 @@ config.json
 Thumbs.db
 
 # Archivo pesado (Descargar del release v1.1 en caso de necesitarse)
+BRCA_pareados_raw.rds
 LUAD_pareados_raw.rds
 anno.rds
 sondas_promotor.rds
